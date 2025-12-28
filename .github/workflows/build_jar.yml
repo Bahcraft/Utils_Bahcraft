@@ -7,7 +7,6 @@ on:
 
 jobs:
   build:
-    # ONLY run if the review outcome was "Approved"
     if: github.event.review.state == 'approved'
     runs-on: ubuntu-latest
 
