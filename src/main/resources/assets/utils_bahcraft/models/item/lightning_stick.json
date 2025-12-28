@@ -1,0 +1,6 @@
+{
+  "parent": "item/handheld",
+  "textures": {
+    "layer0": "utils_bahcraft:item/lightning_stick"
+  }
+}
