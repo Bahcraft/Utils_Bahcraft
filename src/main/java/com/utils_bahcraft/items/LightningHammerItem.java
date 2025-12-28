@@ -26,10 +26,10 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.EquipmentSlot;
 
-public class LightningStickItem extends Item {
+public class LightningHammerItem extends Item {
     private static final String TAG_MODE = "LightningMode";
 
-    public LightningStickItem(Properties properties) {
+    public LightningHammerItem(Properties properties) {
         super(properties);
     }
 
@@ -143,11 +143,11 @@ public class LightningStickItem extends Item {
     @Override
     public @NotNull Component getName(ItemStack stack) {
         if (isModeActive(stack)) {
-            return Component.literal("Lightning Stick")
+            return Component.literal("Martelão On")
                     .withStyle(ChatFormatting.GOLD)
                     .withStyle(ChatFormatting.BOLD);
         } else {
-            return Component.literal("Stick")
+            return Component.literal("Martelão Off")
                     .withStyle(ChatFormatting.GRAY);
         }
     }
