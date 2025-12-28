@@ -1,22 +1,18 @@
-name: Build Jar on Approval
+name: Build Jar on Main
 
 on:
-  # Trigger when a Review is submitted
-  pull_request_review:
-    types: [submitted]
+  # Trigger on every commit/merge to the main branch
+  push:
+    branches: [ "main" ]
 
 jobs:
   build:
-    if: github.event.review.state == 'approved'
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout the specific code from the PR (not the main branch)
-      - name: Checkout PR Code
+      # 1. Checkout the code (Automatically grabs the latest commit on main)
+      - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.sha }}
 
       # 2. Set up Java
       - name: Set up JDK 17
@@ -37,5 +33,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: approved-mod-jar
+          name: util-bahcraft
           path: build/libs/*.jar
