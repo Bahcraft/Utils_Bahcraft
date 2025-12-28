@@ -1,36 +1,42 @@
-name: Build Mod Jar
+name: Build Jar on Approval
 
 on:
-  pull_request:
-    branches: [ "main" ]
+  # Trigger when a Review is submitted
+  pull_request_review:
+    types: [submitted]
 
 jobs:
   build:
+    # ONLY run if the review outcome was "Approved"
+    if: github.event.review.state == 'approved'
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Download your code
-      - name: Checkout Code
+      # 1. Checkout the specific code from the PR (not the main branch)
+      - name: Checkout PR Code
         uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
 
-      # 2. Set up Java (Java 17 is standard for 1.18 - 1.20)
+      # 2. Set up Java
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Make the Gradle script executable (Critical for Linux/Mac builds)
+      # 3. Permission fix
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      # 4. Run the Build
+      # 4. Build
       - name: Build with Gradle
         run: ./gradlew build
 
-      # 5. Upload the JAR so you can download it
+      # 5. Upload Artifact
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: utils-bahcraft
+          name: approved-mod-jar
           path: build/libs/*.jar
