@@ -82,7 +82,7 @@ public class UtilsBahCraft
 
                 ItemProperties.register(
                         LIGHTNING_HAMMER.get(),
-                        ResourceLocation.fromNamespaceAndPath(MODID, "mode_active"),
+                        new ResourceLocation(MODID, "mode_active"),
                         (stack, level, entity, seed) -> {
                             return stack.getOrCreateTag().getBoolean("LightningMode") ? 1.0F : 0.0F;
                         }
