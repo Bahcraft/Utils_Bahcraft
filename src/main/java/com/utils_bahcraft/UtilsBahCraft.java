@@ -2,7 +2,10 @@ package com.utils_bahcraft;
 
 import com.utils_bahcraft.items.LightningHammerItem; // Make sure this import matches your class name
 import net.minecraft.client.renderer.item.ItemProperties;
+import net.minecraft.network.chat.Component;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.api.distmarker.Dist;
@@ -11,6 +14,7 @@ import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
@@ -24,10 +28,22 @@ public class UtilsBahCraft
 
     // Item Registry
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
+    public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS =
+            DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
     // Registering the Lightning Hammer
     public static final RegistryObject<Item> LIGHTNING_HAMMER = ITEMS.register("lightning_hammer",
             () -> new LightningHammerItem(new Item.Properties()));
+
+    // 3. Register the Custom Tab
+    public static final RegistryObject<CreativeModeTab> BAHCRAFT_TAB = CREATIVE_MODE_TABS.register("bahcraft_tab",
+            () -> CreativeModeTab.builder()
+                    .title(Component.translatable("creativetab.utils_bahcraft"))
+                    .icon(() -> LIGHTNING_HAMMER.get().getDefaultInstance()) // The icon on the tab
+                    .displayItems((parameters, output) -> {
+                        output.accept(LIGHTNING_HAMMER.get());
+                    })
+                    .build());
 
     public UtilsBahCraft(FMLJavaModLoadingContext context)
     {
@@ -35,9 +51,12 @@ public class UtilsBahCraft
 
         // Register Items
         ITEMS.register(modEventBus);
+        CREATIVE_MODE_TABS.register(modEventBus);
 
         // Register Creative Tab listener
         modEventBus.addListener(this::addCreative);
+
+        context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
 
         // Register global event bus
         MinecraftForge.EVENT_BUS.register(this);
@@ -47,7 +66,7 @@ public class UtilsBahCraft
     private void addCreative(BuildCreativeModeTabContentsEvent event)
     {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            event.accept(LIGHTNING_HAMMER);
+//            event.accept(LIGHTNING_HAMMER);
         }
     }
 
