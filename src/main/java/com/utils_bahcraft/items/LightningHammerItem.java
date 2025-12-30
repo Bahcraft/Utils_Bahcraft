@@ -1,11 +1,9 @@
 package com.utils_bahcraft.items;
 
+import com.utils_bahcraft.utils.HammerUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
@@ -18,11 +16,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,110 +28,72 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.EquipmentSlot;
 
-import java.util.List;
 import java.util.UUID;
 
 public class LightningHammerItem extends Item {
-    private static final String TAG_MODE = "LightningMode";
-    private static final String TAG_LAUNCH = "HammerLaunch";
+
     private static final UUID KNOCKBACK_UUID = UUID.fromString("2f3d9178-6f6f-45d2-a3c3-5684534f4342");
     private static final UUID MOVEMENT_UUID = UUID.fromString("1a2b3c4d-1e2f-3a4b-5c6d-7e8f9a0b1c2d");
-    private static final UUID HEALTH_UUID = UUID.fromString("7d8e9f0a-1b2c-3d4e-5f6a-7b8c9d0e1f2a");
+    private static final float LAUNCH_AMOUNT = 2.5f;
+
 
     public LightningHammerItem(Properties properties) {
         super(properties);
     }
 
-    /**
-     * 1. HANDLE AIR CLICKS (Mode Toggle + Super Jump)
-     */
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
-        if (player.getXRot() > 80 && player.onGround() && isModeActive(stack) ) {
+        // --- SCENARIO 1: LAUNCH (Look Up + Ground + Mode On) ---
+        if (player.getXRot() > 80 && player.onGround() && HammerUtils.isModeActive(stack)) {
             if (!level.isClientSide) {
-                // 1. Launch the player Upward
-                Vec3 currentVel = player.getDeltaMovement();
-                // Set Y to 2.5 (Very High Jump), keep X and Z momentum
-                player.setDeltaMovement(currentVel.x, 2.5, currentVel.z);
-                player.hurtMarked = true;
-
-                // 2. Play Sound
-                level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                        SoundEvents.DRAGON_FIREBALL_EXPLODE, SoundSource.PLAYERS, 0.5f, 0.5f);
-
-                stack.getOrCreateTag().putBoolean(TAG_LAUNCH, true);
+                HammerUtils.launchPlayer(level, player, stack, LAUNCH_AMOUNT);
             }
             return InteractionResultHolder.success(stack);
         }
-        // -------------------------------
 
-        if (!player.isCrouching()) {
-            return InteractionResultHolder.pass(stack);
-        }
-
-        if (!level.isClientSide) {
-            toggleMode(stack, player);
+        // --- SCENARIO 2: TOGGLE MODE (Crouching) ---
+        if (!level.isClientSide && player.isCrouching()) {
+            HammerUtils.toggleMode(level, player, stack);
             return InteractionResultHolder.consume(stack);
         }
 
         return InteractionResultHolder.pass(stack);
     }
 
-    /**
-     * 4. PREVENT FALL DAMAGE (The Trick)
-     * This runs every tick while the item is in your inventory.
-     */
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
-        if (entity instanceof Player player && isSelected) {
-            CompoundTag tag = stack.getOrCreateTag();
+        if (!(entity instanceof Player player) || !isSelected) return;
 
-            if(isModeActive(stack)){
-                player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 40, 20, false, false));
-            }
+        // 1. Handle God Mode
+        if (HammerUtils.isModeActive(stack)) {
+            HammerUtils.applyGodModeEffects(player);
+        }
 
-            if (tag.getBoolean(TAG_MODE)) {
-                player.setHealth(Float.POSITIVE_INFINITY);
-            }
-
-            if (tag.getBoolean(TAG_LAUNCH)) {
-                player.resetFallDistance();
-                if (!player.onGround() || player.getDeltaMovement().y >= 0.1)
-                    return;
-
-                if (!level.isClientSide) {
-                    executeSmashAttack(level, player);
-                }
-
-                // Turn off the launch state
-                tag.putBoolean(TAG_LAUNCH, false);
-
+        // 2. Handle Smash Attack State
+        CompoundTag tag = stack.getOrCreateTag();
+        if (tag.getBoolean(HammerUtils.TAG_LAUNCH)) {
+            if (HammerUtils.checkAndExecuteSmash(level, player)) {
+                tag.putBoolean(HammerUtils.TAG_LAUNCH, false);
             }
         }
     }
 
-    /**
-     * 2. HANDLE BLOCK CLICKS (For Lightning)
-     */
     @Override
     public InteractionResult useOn(UseOnContext context) {
         Player player = context.getPlayer();
 
-        if (player != null && player.isCrouching()) {
+        if (player != null && player.isCrouching())
             return InteractionResult.PASS;
-        }
 
-        if (!isModeActive(context.getItemInHand())) {
+        if (!HammerUtils.isModeActive(context.getItemInHand()))
             return InteractionResult.PASS;
-        }
 
         Level level = context.getLevel();
 
-        if (level.isClientSide) {
+        if (level.isClientSide)
             return InteractionResult.PASS;
-        }
 
         Vec3 positionClicked = Vec3.atBottomCenterOf(context.getClickedPos().above());
         LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
@@ -149,26 +106,22 @@ public class LightningHammerItem extends Item {
         return InteractionResult.SUCCESS;
     }
 
-    /**
-     * 3. HANDLE ENTITY HITS (Lightning on Mobs/Players)
-     */
     @Override
     public boolean hurtEnemy(@NotNull ItemStack stack, @NotNull LivingEntity target, @NotNull LivingEntity attacker) {
-        if (!isModeActive(stack)) {
+        if (!HammerUtils.isModeActive(stack)) {
             return super.hurtEnemy(stack, target, attacker);
         }
 
         Level level = target.level();
         if (!level.isClientSide()) {
-
-            // 2. Spawn Lightning Visuals
+            // Visuals
             LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
             if (bolt != null) {
                 bolt.moveTo(target.position());
                 level.addFreshEntity(bolt);
             }
 
-            // 3. Handle the Damage Logic
+            // Damage Logic
             new Thread(() -> {
                 try {
                     Thread.sleep(100);
@@ -178,8 +131,7 @@ public class LightningHammerItem extends Item {
 
                 level.getServer().execute(() -> {
                     if (target.isAlive()) {
-                        target.invulnerableTime = 0;
-                        forceKill(target, level);
+                        HammerUtils.forceKill(target, level);
                     }
                 });
             }).start();
@@ -190,37 +142,22 @@ public class LightningHammerItem extends Item {
 
     @Override
     public boolean onLeftClickEntity(ItemStack stack, Player player, Entity entity) {
-        // 1. Guard: If client-side, let vanilla handle it
-        if (player.level().isClientSide) {
-            return super.onLeftClickEntity(stack, player, entity);
-        }
+        if (player.level().isClientSide) return super.onLeftClickEntity(stack, player, entity);
+        if (!(entity instanceof LivingEntity target)) return super.onLeftClickEntity(stack, player, entity);
+        if (!HammerUtils.isModeActive(stack)) return super.onLeftClickEntity(stack, player, entity);
 
-        // 2. Guard: If target isn't a LivingEntity, let vanilla handle it
-        if (!(entity instanceof LivingEntity target)) {
-            return super.onLeftClickEntity(stack, player, entity);
-        }
+        // --- EXECUTE GOD MODE KILL ---
 
-        // 3. Guard: If mode is OFF, let vanilla handle it
-        if (!isModeActive(stack)) {
-            return super.onLeftClickEntity(stack, player, entity);
-        }
-
-        // --- EXECUTE GOD MODE LOGIC ---
-
-        // 1. Reset I-Frames so they take damage immediately
-        target.invulnerableTime = 0;
-
-        // 2. Visuals: Spawn lightning for effect
+        // 1. Visuals
         LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(player.level());
         if (bolt != null) {
             bolt.moveTo(target.position());
             player.level().addFreshEntity(bolt);
         }
 
-        // 3. Force Kill Logic
-        forceKill(target, player.level());
+        // 2. Logic (Delegated to Utils)
+        HammerUtils.forceKill(target, player.level());
 
-        // 4. Return true to cancel the vanilla attack (we handled it manually)
         return true;
     }
 
@@ -232,39 +169,30 @@ public class LightningHammerItem extends Item {
 
         ImmutableMultimap.Builder<Attribute, AttributeModifier> builder = ImmutableMultimap.builder();
 
-        // Attack Speed (Infinite = Instant Cooldown)
-        if (isModeActive(stack)) {
+        if (HammerUtils.isModeActive(stack)) {
             builder.put(Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Tool modifier",
-                    Float.POSITIVE_INFINITY,
-                    AttributeModifier.Operation.ADDITION));
+                    Float.POSITIVE_INFINITY, AttributeModifier.Operation.ADDITION));
             builder.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_DAMAGE_UUID, "Tool modifier",
-                    Float.POSITIVE_INFINITY,
-                    AttributeModifier.Operation.ADDITION));
+                    Float.POSITIVE_INFINITY, AttributeModifier.Operation.ADDITION));
             builder.put(Attributes.ATTACK_KNOCKBACK, new AttributeModifier(KNOCKBACK_UUID, "Weapon knockback",
                     50.0f, AttributeModifier.Operation.ADDITION));
             builder.put(Attributes.MOVEMENT_SPEED, new AttributeModifier(MOVEMENT_UUID, "Weapon speed",
                     0.15f, AttributeModifier.Operation.ADDITION));
-        }
-        else{
+        } else {
             builder.put(Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Tool modifier",
-                    15.0f,
-                    AttributeModifier.Operation.ADDITION));
+                    15.0f, AttributeModifier.Operation.ADDITION));
             builder.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_DAMAGE_UUID, "Tool modifier",
-                    15.0f,
-                    AttributeModifier.Operation.ADDITION));
+                    15.0f, AttributeModifier.Operation.ADDITION));
             builder.put(Attributes.ATTACK_KNOCKBACK, new AttributeModifier(KNOCKBACK_UUID, "Weapon knockback",
                     5.0f, AttributeModifier.Operation.ADDITION));
         }
 
-
         return builder.build();
     }
 
-    // --- HELPER METHODS ---
-
     @Override
     public @NotNull Component getName(ItemStack stack) {
-        if (isModeActive(stack)) {
+        if (HammerUtils.isModeActive(stack)) {
             return Component.literal("Martelão")
                     .withStyle(ChatFormatting.GOLD)
                     .withStyle(ChatFormatting.BOLD);
@@ -274,126 +202,8 @@ public class LightningHammerItem extends Item {
         }
     }
 
-    private void executeSmashAttack(Level level, Player player) {
-        double radius = 100.0;
-
-        AABB area = player.getBoundingBox().inflate(radius);
-
-        List<LivingEntity> nearbyEntities =  level.getEntitiesOfClass(LivingEntity.class, area, e -> true);
-
-        // 4. Play a massive thunder sound for impact
-        level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.TRIDENT_THUNDER, SoundSource.PLAYERS, 2.0f, 1.0f);
-
-        for (LivingEntity target : nearbyEntities) {
-            if (target == player) continue;
-
-            LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
-            if (bolt == null) continue;
-
-            bolt.moveTo(target.position());
-            level.addFreshEntity(bolt);
-            if (target instanceof ServerPlayer sp) {
-                forceKillPlayer(sp);
-                continue;
-            }
-            forceKill(target, level);
-        }
-    }
-
-    private void dropHead(LivingEntity target, Level level) {
-        ItemStack headStack = null;
-
-        // 1. Check for Player (Get their skin)
-        if (target instanceof Player player) {
-            headStack = new ItemStack(Items.PLAYER_HEAD);
-            CompoundTag tag = headStack.getOrCreateTag();
-
-            CompoundTag skullOwner = new CompoundTag();
-            skullOwner.putUUID("Id", player.getUUID());
-            skullOwner.putString("Name", player.getGameProfile().getName());
-
-            tag.put("SkullOwner", skullOwner);
-        }
-        // 2. Check for Mobs
-        else if (target instanceof net.minecraft.world.entity.monster.Zombie) {
-            headStack = new ItemStack(Items.ZOMBIE_HEAD);
-        }
-        else if (target instanceof net.minecraft.world.entity.monster.Skeleton) {
-            headStack = new ItemStack(Items.SKELETON_SKULL);
-        }
-        else if (target instanceof net.minecraft.world.entity.monster.WitherSkeleton) {
-            headStack = new ItemStack(Items.WITHER_SKELETON_SKULL);
-        }
-        else if (target instanceof net.minecraft.world.entity.monster.Creeper) {
-            headStack = new ItemStack(Items.CREEPER_HEAD);
-        }
-        else if (target instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon) {
-            headStack = new ItemStack(Items.DRAGON_HEAD);
-        }
-
-        // 3. Spawn the item
-        if (headStack != null) {
-            net.minecraft.world.entity.item.ItemEntity drop =
-                    new net.minecraft.world.entity.item.ItemEntity(level, target.getX(), target.getY(), target.getZ(), headStack);
-
-            drop.setPickUpDelay(0);
-            drop.setInvulnerable(true);
-            level.addFreshEntity(drop);
-        }
-    }
-
-    private static void forceKillPlayer(ServerPlayer sp) {
-        // 1) Spectator/Creative -> tirar do modo intocável
-        if (sp.gameMode.getGameModeForPlayer() == GameType.SPECTATOR
-                || sp.gameMode.getGameModeForPlayer() == GameType.CREATIVE) {
-            sp.gameMode.changeGameModeForPlayer(GameType.SURVIVAL);
-        }
-
-        sp.getAbilities().invulnerable = false;
-        sp.onUpdateAbilities();
-
-        sp.invulnerableTime = 0;
-
-        sp.hurt(sp.level().damageSources().genericKill(), Float.MAX_VALUE);
-    }
-
-    private void forceKill(LivingEntity target, Level level) {
-        if (level.isClientSide) return;
-
-        target.invulnerableTime = 0;
-
-        // 2. Try Standard Damage (for visuals/sound)
-        dropHead(target, level);
-        boolean damaged = target.hurt(level.damageSources().lightningBolt(), Float.MAX_VALUE);
-        if (!damaged) {
-            target.invulnerableTime = 0;
-            target.hurt(level.damageSources().fellOutOfWorld(), Float.MAX_VALUE);
-
-            target.setHealth(0.0F);
-            target.kill();
-        }
-
-    }
-
-    public boolean isModeActive(ItemStack stack) {
-        CompoundTag tag = stack.getTag();
-        return tag != null && tag.getBoolean(TAG_MODE);
-    }
-
-    private void toggleMode(ItemStack stack, Player player) {
-        CompoundTag tag = stack.getOrCreateTag();
-        boolean currentMode = tag.getBoolean(TAG_MODE);
-        boolean newMode = !currentMode;
-
-        tag.putBoolean(TAG_MODE, newMode);
-
-        player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.5f, 1.0f);
-    }
-
     @Override
     public boolean isFoil(ItemStack stack) {
-        return isModeActive(stack);
+        return HammerUtils.isModeActive(stack);
     }
 }
