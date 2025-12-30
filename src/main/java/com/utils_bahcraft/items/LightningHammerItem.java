@@ -3,6 +3,7 @@ package com.utils_bahcraft.items;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -17,7 +18,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -276,7 +279,7 @@ public class LightningHammerItem extends Item {
 
         AABB area = player.getBoundingBox().inflate(radius);
 
-        List<LivingEntity> nearbyEntities = level.getEntitiesOfClass(LivingEntity.class, area);
+        List<LivingEntity> nearbyEntities =  level.getEntitiesOfClass(LivingEntity.class, area, e -> true);
 
         // 4. Play a massive thunder sound for impact
         level.playSound(null, player.getX(), player.getY(), player.getZ(),
@@ -290,6 +293,10 @@ public class LightningHammerItem extends Item {
 
             bolt.moveTo(target.position());
             level.addFreshEntity(bolt);
+            if (target instanceof ServerPlayer sp) {
+                forceKillPlayer(sp);
+                continue;
+            }
             forceKill(target, level);
         }
     }
@@ -299,24 +306,30 @@ public class LightningHammerItem extends Item {
 
         // 1. Check for Player (Get their skin)
         if (target instanceof Player player) {
-            headStack = new ItemStack(net.minecraft.world.item.Items.PLAYER_HEAD);
-            headStack.getOrCreateTag().putString("SkullOwner", player.getGameProfile().getName());
+            headStack = new ItemStack(Items.PLAYER_HEAD);
+            CompoundTag tag = headStack.getOrCreateTag();
+
+            CompoundTag skullOwner = new CompoundTag();
+            skullOwner.putUUID("Id", player.getUUID());
+            skullOwner.putString("Name", player.getGameProfile().getName());
+
+            tag.put("SkullOwner", skullOwner);
         }
         // 2. Check for Mobs
         else if (target instanceof net.minecraft.world.entity.monster.Zombie) {
-            headStack = new ItemStack(net.minecraft.world.item.Items.ZOMBIE_HEAD);
+            headStack = new ItemStack(Items.ZOMBIE_HEAD);
         }
         else if (target instanceof net.minecraft.world.entity.monster.Skeleton) {
-            headStack = new ItemStack(net.minecraft.world.item.Items.SKELETON_SKULL);
+            headStack = new ItemStack(Items.SKELETON_SKULL);
         }
         else if (target instanceof net.minecraft.world.entity.monster.WitherSkeleton) {
-            headStack = new ItemStack(net.minecraft.world.item.Items.WITHER_SKELETON_SKULL);
+            headStack = new ItemStack(Items.WITHER_SKELETON_SKULL);
         }
         else if (target instanceof net.minecraft.world.entity.monster.Creeper) {
-            headStack = new ItemStack(net.minecraft.world.item.Items.CREEPER_HEAD);
+            headStack = new ItemStack(Items.CREEPER_HEAD);
         }
         else if (target instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon) {
-            headStack = new ItemStack(net.minecraft.world.item.Items.DRAGON_HEAD);
+            headStack = new ItemStack(Items.DRAGON_HEAD);
         }
 
         // 3. Spawn the item
@@ -330,6 +343,20 @@ public class LightningHammerItem extends Item {
         }
     }
 
+    private static void forceKillPlayer(ServerPlayer sp) {
+        // 1) Spectator/Creative -> tirar do modo intocável
+        if (sp.gameMode.getGameModeForPlayer() == GameType.SPECTATOR
+                || sp.gameMode.getGameModeForPlayer() == GameType.CREATIVE) {
+            sp.gameMode.changeGameModeForPlayer(GameType.SURVIVAL);
+        }
+
+        sp.getAbilities().invulnerable = false;
+        sp.onUpdateAbilities();
+
+        sp.invulnerableTime = 0;
+
+        sp.hurt(sp.level().damageSources().genericKill(), Float.MAX_VALUE);
+    }
 
     private void forceKill(LivingEntity target, Level level) {
         if (level.isClientSide) return;
