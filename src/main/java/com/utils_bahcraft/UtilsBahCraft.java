@@ -3,8 +3,8 @@ package com.utils_bahcraft;
 import com.mojang.logging.LogUtils;
 import com.utils_bahcraft.items.LightningHammerItem; // Make sure this import matches your class name
 import net.minecraft.client.renderer.item.ItemProperties;
-import net.minecraft.network.chat.Component;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -88,7 +88,7 @@ public class UtilsBahCraft
                 // Register item property for model overrides
                 ItemProperties.register(
                         LIGHTNING_HAMMER.get(),
-                        ResourceLocation.fromNamespaceAndPath(MODID, "mode_active"),
+                        new ResourceLocation(MODID, "mode_active"),
                         (stack, level, entity, seed) -> {
                             // Return 1.0 when mode is active, 0.0 when inactive
                             boolean isActive = stack.hasTag() && stack.getTag().getBoolean("LightningMode");
