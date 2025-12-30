@@ -19,6 +19,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.level.NoteBlockEvent;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableMultimap;
@@ -39,6 +40,7 @@ public class LightningHammerItem extends Item {
 
     public LightningHammerItem(Properties properties) {
         super(properties);
+        properties.stacksTo(1).fireResistant();
     }
 
     @Override
@@ -63,19 +65,32 @@ public class LightningHammerItem extends Item {
     }
 
     @Override
-    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
-        if (!(entity instanceof Player player) || !isSelected) return;
+    public boolean onDroppedByPlayer(ItemStack item, Player player) {
+        HammerUtils.removeGodMode(player);
+        HammerUtils.cancelSmash(item);
+        return true;
+    }
 
-        // 1. Handle God Mode
+    @Override
+    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
+        if (!(entity instanceof Player player)) return;
+
+        if (!isSelected) {
+            HammerUtils.cancelSmash(stack);
+            HammerUtils.removeGodMode(player);
+            return;
+        }
+
+        // Holding -> Run God Mode & Smash Detection
         if (HammerUtils.isModeActive(stack)) {
             HammerUtils.applyGodModeEffects(player);
         }
 
-        // 2. Handle Smash Attack State
+        // Handle Smash Attack State
         CompoundTag tag = stack.getOrCreateTag();
         if (tag.getBoolean(HammerUtils.TAG_LAUNCH)) {
-            if (HammerUtils.checkAndExecuteSmash(level, player)) {
-                tag.putBoolean(HammerUtils.TAG_LAUNCH, false);
+            if (HammerUtils.checkAndExecuteSmash(level, player, stack)) {
+                HammerUtils.cancelSmash(stack);
             }
         }
     }
@@ -145,8 +160,6 @@ public class LightningHammerItem extends Item {
         if (player.level().isClientSide) return super.onLeftClickEntity(stack, player, entity);
         if (!(entity instanceof LivingEntity target)) return super.onLeftClickEntity(stack, player, entity);
         if (!HammerUtils.isModeActive(stack)) return super.onLeftClickEntity(stack, player, entity);
-
-        // --- EXECUTE GOD MODE KILL ---
 
         // 1. Visuals
         LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(player.level());
