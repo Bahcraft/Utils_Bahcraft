@@ -40,7 +40,6 @@ public class LightningHammerItem extends Item {
 
     public LightningHammerItem(Properties properties) {
         super(properties);
-        properties.stacksTo(1).fireResistant();
     }
 
     @Override

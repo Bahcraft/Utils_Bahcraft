@@ -54,13 +54,8 @@ public class HammerUtils {
      * Checks if the player landed. Returns TRUE if the tag should be removed (cleared).
      */
     public static boolean checkAndExecuteSmash(Level level, Player player, ItemStack stack) {
-        // Flight: If they started flying in Creative, Cancel.
-        if (player.getAbilities().flying) {
-            return true;
-        }
 
-        // Death: If they died mid-air, Cancel.
-        if (player.isDeadOrDying()) {
+        if (player.isDeadOrDying() || player.getAbilities().flying || !isModeActive(stack)) {
             return true;
         }
 

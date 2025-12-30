@@ -37,7 +37,9 @@ public class UtilsBahCraft
 
     // Registering the Lightning Hammer
     public static final RegistryObject<Item> LIGHTNING_HAMMER = ITEMS.register("lightning_hammer",
-            () -> new LightningHammerItem(new Item.Properties()));
+            () -> new LightningHammerItem(new Item.Properties()
+                    .stacksTo(1)
+                    .fireResistant()));
 
     // 3. Register the Custom Tab
     public static final RegistryObject<CreativeModeTab> BAHCRAFT_TAB = CREATIVE_MODE_TABS.register("bahcraft_tab",
