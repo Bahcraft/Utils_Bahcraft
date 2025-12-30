@@ -1,5 +1,6 @@
 package com.utils_bahcraft;
 
+import com.mojang.logging.LogUtils;
 import com.utils_bahcraft.items.LightningHammerItem; // Make sure this import matches your class name
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.network.chat.Component;
@@ -21,11 +22,13 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+import org.slf4j.Logger;
 
 @Mod(UtilsBahCraft.MODID)
 public class UtilsBahCraft
 {
     public static final String MODID = "utils_bahcraft";
+    public static final Logger LOGGER = LogUtils.getLogger();   
 
     // Item Registry
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
@@ -80,13 +83,19 @@ public class UtilsBahCraft
         {
             event.enqueueWork(() -> {
 
+                // Register item property for model overrides
                 ItemProperties.register(
                         LIGHTNING_HAMMER.get(),
                         ResourceLocation.fromNamespaceAndPath(MODID, "mode_active"),
                         (stack, level, entity, seed) -> {
-                            return stack.getOrCreateTag().getBoolean("LightningMode") ? 1.0F : 0.0F;
+                            // Return 1.0 when mode is active, 0.0 when inactive
+                            boolean isActive = stack.hasTag() && stack.getTag().getBoolean("LightningMode");
+                            float value = isActive ? 1.0F : 0.0F;
+//                            LOGGER.debug("Item property 'mode_active' evaluated: {} (LightningMode={})", value, isActive);
+                            return value;
                         }
                 );
+                LOGGER.info("Registered item property 'mode_active' for Lightning Hammer");
             });
         }
     }
