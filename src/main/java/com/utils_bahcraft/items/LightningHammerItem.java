@@ -16,10 +16,10 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.level.NoteBlockEvent;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableMultimap;
@@ -35,8 +35,6 @@ public class LightningHammerItem extends Item {
 
     private static final UUID KNOCKBACK_UUID = UUID.fromString("2f3d9178-6f6f-45d2-a3c3-5684534f4342");
     private static final UUID MOVEMENT_UUID = UUID.fromString("1a2b3c4d-1e2f-3a4b-5c6d-7e8f9a0b1c2d");
-    private static final float LAUNCH_AMOUNT = 2.5f;
-
 
     public LightningHammerItem(Properties properties) {
         super(properties);
@@ -46,17 +44,15 @@ public class LightningHammerItem extends Item {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
-        // --- SCENARIO 1: LAUNCH (Look Up + Ground + Mode On) ---
-        if (player.getXRot() > 80 && player.onGround() && HammerUtils.isModeActive(stack)) {
+        if (player.isCrouching()) {
             if (!level.isClientSide) {
-                HammerUtils.launchPlayer(level, player, stack, LAUNCH_AMOUNT);
+                HammerUtils.toggleMode(level, player, stack);
             }
-            return InteractionResultHolder.success(stack);
+            return InteractionResultHolder.consume(stack);
         }
 
-        // --- SCENARIO 2: TOGGLE MODE (Crouching) ---
-        if (!level.isClientSide && player.isCrouching()) {
-            HammerUtils.toggleMode(level, player, stack);
+        if (HammerUtils.isModeActive(stack)) {
+            player.startUsingItem(hand);
             return InteractionResultHolder.consume(stack);
         }
 
@@ -64,53 +60,47 @@ public class LightningHammerItem extends Item {
     }
 
     @Override
-    public boolean onDroppedByPlayer(ItemStack item, Player player) {
-        HammerUtils.removeGodMode(player);
-        HammerUtils.cancelSmash(item);
-        return true;
+    public void onUseTick(Level level, LivingEntity livingEntity, ItemStack stack, int remainingUseDuration) {
+        if (!(livingEntity instanceof Player player)) return;
+
+        if (HammerUtils.isModeActive(stack) && player.isUsingItem() && player.getUseItem() == stack) {
+            HammerUtils.spinTick(level, player, stack, remainingUseDuration);
+            return;
+        }
+        if (!level.isClientSide) {
+            HammerUtils.clearLaunchState(player);
+        }
+        livingEntity.stopUsingItem();
     }
 
     @Override
-    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
-        if (!(entity instanceof Player player)) return;
-
-        if (!isSelected) {
-            HammerUtils.cancelSmash(stack);
-            HammerUtils.removeGodMode(player);
-            return;
+    public void releaseUsing(ItemStack stack, Level level, LivingEntity livingEntity, int timeLeft) {
+        if (!level.isClientSide && livingEntity instanceof Player player) {
+            HammerUtils.clearLaunchState(player);
         }
-
-        // Holding -> Run God Mode & Smash Detection
-        if (HammerUtils.isModeActive(stack)) {
-            HammerUtils.applyGodModeEffects(player);
-        }
-
-        // Handle Smash Attack State
-        CompoundTag tag = stack.getOrCreateTag();
-        if (tag.getBoolean(HammerUtils.TAG_LAUNCH)) {
-            if (HammerUtils.checkAndExecuteSmash(level, player, stack)) {
-                HammerUtils.cancelSmash(stack);
-            }
-        }
+        super.releaseUsing(stack, level, livingEntity, timeLeft);
     }
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
         Player player = context.getPlayer();
-
-        if (player != null && player.isCrouching())
-            return InteractionResult.PASS;
-
-        if (!HammerUtils.isModeActive(context.getItemInHand()))
-            return InteractionResult.PASS;
-
         Level level = context.getLevel();
 
-        if (level.isClientSide)
+        if (player != null && player.isCrouching()) {
             return InteractionResult.PASS;
+        }
+
+        if (!HammerUtils.isModeActive(context.getItemInHand())) {
+            return InteractionResult.PASS;
+        }
+
+        if (level.isClientSide) {
+            return InteractionResult.SUCCESS;
+        }
 
         Vec3 positionClicked = Vec3.atBottomCenterOf(context.getClickedPos().above());
         LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
+
         if (bolt != null) {
             player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 5, 5, false, false));
             bolt.moveTo(positionClicked);
@@ -121,6 +111,47 @@ public class LightningHammerItem extends Item {
     }
 
     @Override
+    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
+        if (!(entity instanceof Player player)) return;
+
+        if (level.isClientSide) {
+            boolean isUnarmed = !player.onGround();
+            stack.getOrCreateTag().putBoolean("RenderInAir", isUnarmed);
+        }
+
+        // Not selected, ensure elytra is off
+        if (!isSelected) {
+            if (!level.isClientSide) {
+                HammerUtils.clearLaunchState(player);
+            }
+            HammerUtils.cancelSmash(stack);
+            HammerUtils.removeGodMode(player);
+            return;
+        }
+
+        // If launch flag is on but player is not using this item anymore, stop elytra
+        if (!level.isClientSide) {
+            boolean launchActive = player.getPersistentData().getBoolean(HammerUtils.PD_LAUNCH);
+            boolean usingThis = player.isUsingItem() && player.getUseItem() == stack;
+            if (launchActive && !usingThis) {
+                HammerUtils.clearLaunchState(player);
+            }
+        }
+
+        if (HammerUtils.isModeActive(stack)) {
+            HammerUtils.applyGodModeEffects(player);
+        }
+
+        // Smash logic
+        CompoundTag tag = stack.getOrCreateTag();
+        if (tag.getBoolean(HammerUtils.TAG_LAUNCH)) {
+            if (HammerUtils.checkAndExecuteSmash(level, player, stack)) {
+                HammerUtils.cancelSmash(stack);
+            }
+        }
+    }
+
+    @Override
     public boolean hurtEnemy(@NotNull ItemStack stack, @NotNull LivingEntity target, @NotNull LivingEntity attacker) {
         if (!HammerUtils.isModeActive(stack)) {
             return super.hurtEnemy(stack, target, attacker);
@@ -128,14 +159,12 @@ public class LightningHammerItem extends Item {
 
         Level level = target.level();
         if (!level.isClientSide()) {
-            // Visuals
             LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
             if (bolt != null) {
                 bolt.moveTo(target.position());
                 level.addFreshEntity(bolt);
             }
 
-            // Damage Logic
             new Thread(() -> {
                 try {
                     Thread.sleep(100);
@@ -160,16 +189,13 @@ public class LightningHammerItem extends Item {
         if (!(entity instanceof LivingEntity target)) return super.onLeftClickEntity(stack, player, entity);
         if (!HammerUtils.isModeActive(stack)) return super.onLeftClickEntity(stack, player, entity);
 
-        // 1. Visuals
         LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(player.level());
         if (bolt != null) {
             bolt.moveTo(target.position());
             player.level().addFreshEntity(bolt);
         }
 
-        // 2. Logic (Delegated to Utils)
         HammerUtils.forceKill(target, player.level());
-
         return true;
     }
 
@@ -215,7 +241,53 @@ public class LightningHammerItem extends Item {
     }
 
     @Override
+    public boolean canElytraFly(ItemStack stack, LivingEntity entity) {
+        if (!(entity instanceof Player player)) return false;
+        return HammerUtils.isModeActive(stack)
+                && player.isUsingItem()
+                && player.getUseItem() == stack;
+    }
+
+    @Override
+    public boolean elytraFlightTick(ItemStack stack, LivingEntity entity, int flightTicks) {
+        if (!(entity instanceof Player player)) return false;
+
+        boolean usingThis = HammerUtils.isModeActive(stack)
+                && player.isUsingItem()
+                && player.getUseItem() == stack;
+
+        if (!usingThis && !entity.level().isClientSide) {
+            HammerUtils.clearLaunchState(player);
+        }
+
+        return usingThis;
+    }
+
+    @Override
     public boolean isFoil(ItemStack stack) {
         return HammerUtils.isModeActive(stack);
     }
+
+    @Override
+    public boolean onDroppedByPlayer(ItemStack item, Player player) {
+        HammerUtils.removeGodMode(player);
+        return true;
+    }
+
+
+    @Override
+    public int getUseDuration(ItemStack stack) {
+        return 72000;
+    }
+
+    @Override
+    public UseAnim getUseAnimation(ItemStack stack) {
+        return UseAnim.SPEAR;
+    }
+
+    @Override
+    public boolean shouldCauseReequipAnimation(ItemStack oldStack, ItemStack newStack, boolean slotChanged) {
+        return slotChanged && newStack.getItem() != oldStack.getItem();
+    }
+
 }

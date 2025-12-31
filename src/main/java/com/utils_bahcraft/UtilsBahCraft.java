@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 public class UtilsBahCraft
 {
     public static final String MODID = "utils_bahcraft";
-    public static final Logger LOGGER = LogUtils.getLogger();   
+    public static final Logger LOGGER = LogUtils.getLogger();
 
     // Item Registry
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
@@ -90,14 +90,11 @@ public class UtilsBahCraft
                         LIGHTNING_HAMMER.get(),
                         new ResourceLocation(MODID, "mode_active"),
                         (stack, level, entity, seed) -> {
-                            // Return 1.0 when mode is active, 0.0 when inactive
                             boolean isActive = stack.hasTag() && stack.getTag().getBoolean("LightningMode");
                             float value = isActive ? 1.0F : 0.0F;
-//                            LOGGER.debug("Item property 'mode_active' evaluated: {} (LightningMode={})", value, isActive);
                             return value;
                         }
                 );
-                LOGGER.info("Registered item property 'mode_active' for Lightning Hammer");
             });
         }
     }
