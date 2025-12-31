@@ -1,0 +1,13 @@
+{
+  "parent": "utils_bahcraft:item/base/lightning_hammer_base",
+  "textures": {
+    "1": "utils_bahcraft:item/lightning_hammer",
+    "2": "utils_bahcraft:item/lightning_hammer_glow"
+  },
+  "overrides": [
+    {
+      "predicate": { "utils_bahcraft:mode_active": 1.0 },
+      "model": "utils_bahcraft:item/lightning_hammer_on"
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 package com.utils_bahcraft.items;
 
+import com.utils_bahcraft.UtilsBahCraft;
 import com.utils_bahcraft.utils.HammerUtils;
+import org.jetbrains.annotations.NotNull;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -10,8 +12,6 @@ import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -20,7 +20,6 @@ import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
@@ -41,12 +40,12 @@ public class LightningHammerItem extends Item {
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+    public @NotNull InteractionResultHolder<ItemStack> use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
         if (player.isCrouching()) {
             if (!level.isClientSide) {
-                HammerUtils.toggleMode(level, player, stack);
+                HammerUtils.toggleMode(level, player, stack, HammerUtils.TAG_MODE);
             }
             return InteractionResultHolder.consume(stack);
         }
@@ -60,7 +59,7 @@ public class LightningHammerItem extends Item {
     }
 
     @Override
-    public void onUseTick(Level level, LivingEntity livingEntity, ItemStack stack, int remainingUseDuration) {
+    public void onUseTick(@NotNull Level level, @NotNull LivingEntity livingEntity, @NotNull ItemStack stack, int remainingUseDuration) {
         if (!(livingEntity instanceof Player player)) return;
 
         if (HammerUtils.isModeActive(stack) && player.isUsingItem() && player.getUseItem() == stack) {
@@ -74,7 +73,7 @@ public class LightningHammerItem extends Item {
     }
 
     @Override
-    public void releaseUsing(ItemStack stack, Level level, LivingEntity livingEntity, int timeLeft) {
+    public void releaseUsing(@NotNull ItemStack stack, @NotNull Level level, @NotNull LivingEntity livingEntity, int timeLeft) {
         if (!level.isClientSide && livingEntity instanceof Player player) {
             HammerUtils.clearLaunchState(player);
         }
@@ -82,7 +81,7 @@ public class LightningHammerItem extends Item {
     }
 
     @Override
-    public InteractionResult useOn(UseOnContext context) {
+    public @NotNull InteractionResult useOn(@NotNull UseOnContext context) {
         Player player = context.getPlayer();
         Level level = context.getLevel();
 
@@ -99,19 +98,18 @@ public class LightningHammerItem extends Item {
         }
 
         Vec3 positionClicked = Vec3.atBottomCenterOf(context.getClickedPos().above());
-        LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
 
-        if (bolt != null) {
+        if (player != null) {
             player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 5, 5, false, false));
-            bolt.moveTo(positionClicked);
-            level.addFreshEntity(bolt);
         }
+
+        HammerUtils.spawnLightningAt(level, positionClicked);
 
         return InteractionResult.SUCCESS;
     }
 
     @Override
-    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
+    public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slotId, boolean isSelected) {
         if (!(entity instanceof Player player)) return;
 
         if (level.isClientSide) {
@@ -159,22 +157,18 @@ public class LightningHammerItem extends Item {
 
         Level level = target.level();
         if (!level.isClientSide()) {
-            LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
-            if (bolt != null) {
-                bolt.moveTo(target.position());
-                level.addFreshEntity(bolt);
-            }
+            HammerUtils.spawnLightningAt(level, target.position());
 
             new Thread(() -> {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    UtilsBahCraft.LOGGER.error("Interrupted while waiting to force kill target", e);
                 }
 
                 level.getServer().execute(() -> {
                     if (target.isAlive()) {
-                        HammerUtils.forceKill(target, level);
+                        HammerUtils.forceKill(target, level, level.damageSources().lightningBolt());
                     }
                 });
             }).start();
@@ -184,18 +178,14 @@ public class LightningHammerItem extends Item {
     }
 
     @Override
-    public boolean onLeftClickEntity(ItemStack stack, Player player, Entity entity) {
+    public boolean onLeftClickEntity(@NotNull ItemStack stack, @NotNull Player player, @NotNull Entity entity) {
         if (player.level().isClientSide) return super.onLeftClickEntity(stack, player, entity);
         if (!(entity instanceof LivingEntity target)) return super.onLeftClickEntity(stack, player, entity);
         if (!HammerUtils.isModeActive(stack)) return super.onLeftClickEntity(stack, player, entity);
 
-        LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(player.level());
-        if (bolt != null) {
-            bolt.moveTo(target.position());
-            player.level().addFreshEntity(bolt);
-        }
+        HammerUtils.spawnLightningAt(player.level(), target.position());
 
-        HammerUtils.forceKill(target, player.level());
+        HammerUtils.forceKill(target, player.level(), player.level().damageSources().lightningBolt());
         return true;
     }
 

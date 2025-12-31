@@ -2,10 +2,14 @@ package com.utils_bahcraft.client;
 
 import com.utils_bahcraft.UtilsBahCraft;
 import com.utils_bahcraft.utils.HammerUtils;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingFallEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -14,7 +18,8 @@ public class CommonForgeEvents {
     @SubscribeEvent
     public static void onLivingFall(LivingFallEvent event) {
         // 1. Check if it is a player
-        if (!(event.getEntity() instanceof Player player)) return;
+        if (!(event.getEntity() instanceof Player)) return;
+        Player player = (Player) event.getEntity();
 
         // 2. Check if Server Side (Damage logic is server-only)
         if (player.level().isClientSide) return;
@@ -50,6 +55,28 @@ public class CommonForgeEvents {
         // Count only while fall-flying (elytra)
         if (player.isFallFlying()) {
             HammerUtils.tickLaunch(player);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
+        // Only handle server side
+        Level level = event.getLevel();
+        if (level.isClientSide) return;
+
+        Entity entity = event.getEntity();
+        if (!(entity instanceof Player)) return;
+        Player player = (Player) entity;
+
+        ItemStack stack = player.getMainHandItem();
+        // If player is holding the simple hammer, spawn lightning and destroy the block
+        if (stack.getItem() == UtilsBahCraft.SIMPLE_LIGHTNING_HAMMER.get()) {
+            BlockPos pos = event.getPos();
+
+            boolean dropItems = !player.isCreative();
+            HammerUtils.strikeBlockWithLightning(level, pos, dropItems);
+
+            event.setCanceled(true);
         }
     }
 }
