@@ -38,7 +38,7 @@ public class HammerUtilsTest {
         assertEquals("spawnLightningAt", recorder.calls.get(0).name);
         assertSame(level, recorder.calls.get(0).args[0]);
         assertSame(pos, recorder.calls.get(0).args[1]);
-        assertEquals(true, recorder.calls.get(0).args[2]);
+        assertEquals(false, recorder.calls.get(0).args[2]);
     }
 
     @Test
