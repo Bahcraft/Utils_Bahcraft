@@ -22,7 +22,7 @@ public class ClientForgeEvents {
     }
 
     @SubscribeEvent
-    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+    public static void onPonPlayerTicklayerTick(TickEvent.PlayerTickEvent event) {
         // 1. Validations: Run only on Client, only for the actual User (not other players)
         if (event.phase != TickEvent.Phase.END) {
             return;
@@ -35,7 +35,7 @@ public class ClientForgeEvents {
         // 2. Condition: Holding Hammer + In Air + Pressing Shift (Crouch)
         boolean isHoldingHammer = player.isHolding(UtilsBahCraft.LIGHTNING_HAMMER.get());
         boolean isInAir = !player.onGround() && !player.getAbilities().flying;
-        boolean isCrouching = Minecraft.getInstance().options.keyShift.isDown(); // Checks actual key input
+        boolean isCrouching = Minecraft.getInstance().options.keyShift.isDown();
 
         // BOMB Logic
         if (isHoldingHammer && isInAir && isCrouching) {
@@ -49,9 +49,7 @@ public class ClientForgeEvents {
     }
     @SubscribeEvent
     public static void onMovementInput(MovementInputUpdateEvent event) {
-        // Check if the player is using the Hammer
         if (event.getEntity().isUsingItem() && event.getEntity().getUseItem().getItem() == UtilsBahCraft.LIGHTNING_HAMMER.get()) {
-
             event.getInput().leftImpulse *= 5.0f;
             event.getInput().forwardImpulse *= 5.0f;
         }

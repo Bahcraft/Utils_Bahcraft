@@ -3,6 +3,7 @@ package com.utils_bahcraft;
 import com.mojang.logging.LogUtils;
 import com.utils_bahcraft.items.LightningHammerItem; // Make sure this import matches your class name
 import com.utils_bahcraft.items.SimpleLightningHammerItem;
+import com.utils_bahcraft.utils.HammerUtils;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -48,6 +49,12 @@ public class UtilsBahCraft
                     .stacksTo(1)
                     .fireResistant()));
 
+    // Registering the Balanced Hammer
+    public static final RegistryObject<Item> BALANCED_HAMMER = ITEMS.register("balanced_hammer",
+            () -> new com.utils_bahcraft.items.BalancedHammerItem(new Item.Properties()
+                    .stacksTo(1)
+                    .fireResistant()));
+
     // 3. Register the Custom Tab
     public static final RegistryObject<CreativeModeTab> BAHCRAFT_TAB = CREATIVE_MODE_TABS.register("bahcraft_tab",
             () -> CreativeModeTab.builder()
@@ -56,6 +63,7 @@ public class UtilsBahCraft
                     .displayItems((parameters, output) -> {
                         output.accept(LIGHTNING_HAMMER.get());
                         output.accept(SIMPLE_LIGHTNING_HAMMER.get());
+                        output.accept(BALANCED_HAMMER.get());
                     })
                     .build());
 
@@ -112,6 +120,16 @@ public class UtilsBahCraft
                             boolean isActive = stack.hasTag() && stack.getTag().getBoolean("SIMPLE_HAMMER_MODE");
                             float value = isActive ? 1.0F : 0.0F;
                             return value;
+                        }
+                );
+
+                // Balanced hammer property registration
+                ItemProperties.register(
+                        BALANCED_HAMMER.get(),
+                        new ResourceLocation(MODID, "mode_active"),
+                        (stack, level, entity, seed) -> {
+                            boolean isActive = stack.hasTag() && stack.getTag().getBoolean(HammerUtils.BALANCED_TAG_MODE);
+                            return isActive ? 1.0F : 0.0F;
                         }
                 );
             });

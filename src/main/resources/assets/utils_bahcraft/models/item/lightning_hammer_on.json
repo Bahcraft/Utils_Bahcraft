@@ -1,7 +1,7 @@
 {
   "parent": "utils_bahcraft:item/base/lightning_hammer_base",
   "textures": {
-    "1": "utils_bahcraft:item/lightning_hammer_on",
-    "2": "utils_bahcraft:item/lightning_hammer_glow"
+    "1": "utils_bahcraft:item/lightning_hammer_3d/lightning_hammer_on",
+    "2": "utils_bahcraft:item/lightning_hammer_3d/lightning_hammer_glow"
   }
 }

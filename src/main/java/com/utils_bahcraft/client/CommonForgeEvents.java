@@ -3,11 +3,13 @@ package com.utils_bahcraft.client;
 import com.utils_bahcraft.UtilsBahCraft;
 import com.utils_bahcraft.utils.HammerUtils;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingFallEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -30,6 +32,27 @@ public class CommonForgeEvents {
         // 4. Logic: If holding Hammer AND Launch is Active -> NO DAMAGE
         if (stack.getItem() == UtilsBahCraft.LIGHTNING_HAMMER.get() && stack.getOrCreateTag().getBoolean(HammerUtils.TAG_LAUNCH)) {
             event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingAttack(LivingAttackEvent event) {
+        // 1. We only care if the target is a Player
+        if (!(event.getEntity() instanceof Player player)) return;
+
+        // 2. We only care if the damage is Lightning
+        if (!event.getSource().is(DamageTypes.LIGHTNING_BOLT) && !event.getSource().is(DamageTypes.ON_FIRE)) {
+            return;
+        }
+
+        // 3. Check if Player is holding/using the Hammer
+        ItemStack stack = player.getUseItem();
+        if (stack.getItem() == UtilsBahCraft.LIGHTNING_HAMMER.get() && HammerUtils.isModeActive(stack)) {
+            // 4. CANCEL THE EVENT
+            event.setCanceled(true);
+
+            // 5. Cleanup Fire
+            player.clearFire();
         }
     }
 
@@ -69,7 +92,6 @@ public class CommonForgeEvents {
         Player player = (Player) entity;
 
         ItemStack stack = player.getMainHandItem();
-        // If player is holding the simple hammer, spawn lightning and destroy the block
         if (stack.getItem() == UtilsBahCraft.SIMPLE_LIGHTNING_HAMMER.get()) {
             BlockPos pos = event.getPos();
 

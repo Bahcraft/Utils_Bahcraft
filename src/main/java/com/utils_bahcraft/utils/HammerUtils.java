@@ -31,6 +31,7 @@ public class HammerUtils {
     }
 
     public static final String TAG_MODE = "LightningMode";
+    public static final String BALANCED_TAG_MODE = "BALANCED_HAMMER_MODE";
     public static final String TAG_LAUNCH = "HammerLaunch";
 
     public static final String PD_LAUNCH = "bahcraft_launch_pd";
@@ -138,7 +139,7 @@ public class HammerUtils {
         }
 
         int ticks = getLaunchTicks(player);
-        boolean ticksOK = ticks >= 20;
+        boolean ticksOK = true;  // TODO REMOVE LATER: ticks >= 10;
         boolean crouch = player.isCrouching();
         boolean naturalFall = player.getDeltaMovement().y < -0.07;
         boolean usingThis = player.isUsingItem() && player.getUseItem() == stack;
