@@ -20,7 +20,7 @@ public class BalancedHammerItem extends LightningHammerItem {
     }
 
     @Override
-    protected @NotNull String getModeTag() {
+    public @NotNull String getModeTag() {
         return HammerUtils.BALANCED_TAG_MODE;
     }
 
@@ -43,7 +43,7 @@ public class BalancedHammerItem extends LightningHammerItem {
     @Override
     public boolean hurtEnemy(@NotNull ItemStack stack, @NotNull LivingEntity target, @NotNull LivingEntity attacker) {
         // Adjust damage/behavior: apply less extreme force than LightningHammer
-        if (!HammerUtils.isModeActive(stack)) {
+        if (!HammerUtils.isModeActive(stack, getModeTag())) {
             return super.hurtEnemy(stack, target, attacker);
         }
 
@@ -66,7 +66,7 @@ public class BalancedHammerItem extends LightningHammerItem {
 
         ImmutableMultimap.Builder<Attribute, AttributeModifier> builder = ImmutableMultimap.builder();
 
-        if (HammerUtils.isModeActive(stack)) {
+        if (HammerUtils.isModeActive(stack, getModeTag())) {
             // Balanced mode: moderate enhancements
             builder.put(Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Tool modifier",
                     1.5f, AttributeModifier.Operation.ADDITION));

@@ -31,7 +31,7 @@ public abstract class LightningHammerBase extends Item {
      * Return the NBT tag key used to store the mode for this hammer.
      */
     @NotNull
-    protected abstract String getModeTag();
+    public abstract String getModeTag();
 
     protected abstract @NotNull String getHammerName();
 
@@ -77,8 +77,7 @@ public abstract class LightningHammerBase extends Item {
     @Override
     public boolean shouldCauseReequipAnimation(ItemStack oldStack, ItemStack newStack, boolean slotChanged) {
         return slotChanged
-                || newStack.getItem() != oldStack.getItem()
-                || HammerUtils.isModeActive(oldStack, getModeTag()) != HammerUtils.isModeActive(newStack, getModeTag());
+                || newStack.getItem() != oldStack.getItem();
     }
 
     @Override

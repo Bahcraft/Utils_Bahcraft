@@ -36,7 +36,7 @@ public class LightningHammerItem extends LightningHammerBase {
     }
 
     @Override
-    protected @NotNull String getModeTag() {
+    public @NotNull String getModeTag() {
         return HammerUtils.TAG_MODE;
     }
 
@@ -59,7 +59,7 @@ public class LightningHammerItem extends LightningHammerBase {
     public void onUseTick(@NotNull Level level, @NotNull LivingEntity livingEntity, @NotNull ItemStack stack, int remainingUseDuration) {
         if (!(livingEntity instanceof Player player)) return;
 
-        if (HammerUtils.isModeActive(stack) && player.isUsingItem() && player.getUseItem() == stack) {
+        if (HammerUtils.isModeActive(stack, getModeTag()) && player.isUsingItem() && player.getUseItem() == stack) {
             HammerUtils.spinTick(level, player, stack, remainingUseDuration);
             return;
         }
@@ -86,7 +86,7 @@ public class LightningHammerItem extends LightningHammerBase {
             return InteractionResult.PASS;
         }
 
-        if (!HammerUtils.isModeActive(context.getItemInHand())) {
+        if (!HammerUtils.isModeActive(context.getItemInHand(), getModeTag())) {
             return InteractionResult.PASS;
         }
 
@@ -109,36 +109,45 @@ public class LightningHammerItem extends LightningHammerBase {
     public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slotId, boolean isSelected) {
         if (!(entity instanceof Player player)) return;
 
+        // 1. CLIENT SIDE: Visuals Only
         if (level.isClientSide) {
-            boolean isUnarmed = !player.onGround();
-            stack.getOrCreateTag().putBoolean("RenderInAir", isUnarmed);
-        }
-
-        // Not selected, ensure elytra is off
-        if (!isSelected) {
-            if (!level.isClientSide) {
-                HammerUtils.clearLaunchState(player);
+            if (isSelected) {
+                boolean isUnarmed = !player.onGround();
+                if (stack.getOrCreateTag().getBoolean("RenderInAir") != isUnarmed) {
+                    stack.getOrCreateTag().putBoolean("RenderInAir", isUnarmed);
+                }
             }
-            HammerUtils.cancelSmash(stack);
-            HammerUtils.removeGodMode(player);
             return;
         }
 
-        if (!level.isClientSide) {
-            boolean launchActive = player.getPersistentData().getBoolean(HammerUtils.PD_LAUNCH);
-            boolean usingThis = player.isUsingItem() && player.getUseItem() == stack;
-            if (launchActive && !usingThis) {
-                HammerUtils.clearLaunchState(player);
+        // 2. UNSELECTED LOGIC (Cleanup)
+        if (!isSelected) {
+            boolean holdingAnotherHammer = HammerUtils.isHoldingLightingHammer(player);
+
+            if (stack.hasTag() && stack.getTag().getBoolean(HammerUtils.TAG_LAUNCH)) {
+                HammerUtils.cancelSmash(stack);
             }
+
+            if (!holdingAnotherHammer) {
+                HammerUtils.clearLaunchState(player);
+                HammerUtils.removeGodMode(player);
+            }
+            return;
         }
 
-        if (HammerUtils.isModeActive(stack)) {
+        // 3. SELECTED LOGIC (Active)
+        boolean launchActive = player.getPersistentData().getBoolean(HammerUtils.PD_LAUNCH);
+        boolean isUsingThisStack = player.isUsingItem() && player.getUseItem() == stack;
+
+        if (launchActive && !isUsingThisStack) {
+            HammerUtils.clearLaunchState(player);
+        }
+
+        if (HammerUtils.isModeActive(stack, getModeTag())) {
             HammerUtils.applyGodModeEffects(player);
         }
 
-        // Smash logic
-        CompoundTag tag = stack.getOrCreateTag();
-        if (tag.getBoolean(HammerUtils.TAG_LAUNCH)) {
+        if (stack.getTag() != null && stack.getTag().getBoolean(HammerUtils.TAG_LAUNCH)) {
             if (HammerUtils.checkAndExecuteSmash(level, player, stack)) {
                 HammerUtils.cancelSmash(stack);
             }
@@ -153,7 +162,7 @@ public class LightningHammerItem extends LightningHammerBase {
 
         ImmutableMultimap.Builder<Attribute, AttributeModifier> builder = ImmutableMultimap.builder();
 
-        if (HammerUtils.isModeActive(stack)) {
+        if (HammerUtils.isModeActive(stack, getModeTag())) {
             builder.put(Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Tool modifier",
                     Float.POSITIVE_INFINITY, AttributeModifier.Operation.ADDITION));
             builder.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_DAMAGE_UUID, "Tool modifier",
@@ -177,7 +186,7 @@ public class LightningHammerItem extends LightningHammerBase {
     @Override
     public boolean canElytraFly(ItemStack stack, LivingEntity entity) {
         if (!(entity instanceof Player player)) return false;
-        return HammerUtils.isModeActive(stack)
+        return HammerUtils.isModeActive(stack, getModeTag())
                 && player.isUsingItem()
                 && player.getUseItem() == stack;
     }
@@ -186,7 +195,7 @@ public class LightningHammerItem extends LightningHammerBase {
     public boolean elytraFlightTick(ItemStack stack, LivingEntity entity, int flightTicks) {
         if (!(entity instanceof Player player)) return false;
 
-        boolean usingThis = HammerUtils.isModeActive(stack)
+        boolean usingThis = HammerUtils.isModeActive(stack, getModeTag())
                 && player.isUsingItem()
                 && player.getUseItem() == stack;
 

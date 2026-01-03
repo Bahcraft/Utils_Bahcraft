@@ -1,5 +1,7 @@
 package com.utils_bahcraft.utils;
 
+import com.utils_bahcraft.UtilsBahCraft;
+import com.utils_bahcraft.interfaces.LightningHammerBase;
 import org.jetbrains.annotations.NotNull;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -239,5 +241,14 @@ public class HammerUtils {
      */
     public static void strikeBlockWithLightning(@NotNull Level level, @NotNull BlockPos pos, boolean dropItems) {
         worldActions.strikeBlockWithLightning(level, pos, dropItems);
+    }
+
+    public static boolean hasActiveHammerState(Player player) {
+        CompoundTag data = player.getPersistentData();
+        return data.contains(PD_LAUNCH) || data.getBoolean("GodModeActive");
+    }
+
+    public static boolean isHoldingLightingHammer(Player player) {
+        return player.getMainHandItem().getItem() instanceof LightningHammerBase;
     }
 }

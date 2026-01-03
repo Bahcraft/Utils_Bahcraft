@@ -1,6 +1,8 @@
 package com.utils_bahcraft;
 
 import com.mojang.logging.LogUtils;
+import com.utils_bahcraft.client.render.HammerBossRender;
+import com.utils_bahcraft.entities.HammerBossEntity;
 import com.utils_bahcraft.items.LightningHammerItem; // Make sure this import matches your class name
 import com.utils_bahcraft.items.SimpleLightningHammerItem;
 import com.utils_bahcraft.utils.HammerUtils;
@@ -8,10 +10,13 @@ import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -25,6 +30,7 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
+import software.bernie.geckolib.GeckoLib;
 
 @Mod(UtilsBahCraft.MODID)
 public class UtilsBahCraft
@@ -34,6 +40,8 @@ public class UtilsBahCraft
 
     // Item Registry
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
+    public static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
+            DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
@@ -55,11 +63,17 @@ public class UtilsBahCraft
                     .stacksTo(1)
                     .fireResistant()));
 
+    public static final RegistryObject<EntityType<HammerBossEntity>> HAMMER_BOSS =
+            ENTITY_TYPES.register("boss",
+                    () -> EntityType.Builder.of(HammerBossEntity::new, MobCategory.MONSTER)
+                            .sized(1.0f, 2.0f) // Hitbox size (width, height)
+                            .build(new ResourceLocation(MODID, "boss").toString()));
+
     // 3. Register the Custom Tab
     public static final RegistryObject<CreativeModeTab> BAHCRAFT_TAB = CREATIVE_MODE_TABS.register("bahcraft_tab",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("creativetab.utils_bahcraft"))
-                    .icon(() -> LIGHTNING_HAMMER.get().getDefaultInstance()) // The icon on the tab
+                    .icon(() -> LIGHTNING_HAMMER.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
                         output.accept(LIGHTNING_HAMMER.get());
                         output.accept(SIMPLE_LIGHTNING_HAMMER.get());
@@ -74,11 +88,14 @@ public class UtilsBahCraft
         // Register Items
         ITEMS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
+        ENTITY_TYPES.register(modEventBus);
 
         // Register Creative Tab listener
         modEventBus.addListener(this::addCreative);
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+
+        GeckoLib.initialize();
 
         // Register global event bus
         MinecraftForge.EVENT_BUS.register(this);
@@ -133,6 +150,10 @@ public class UtilsBahCraft
                         }
                 );
             });
+        }
+        @SubscribeEvent
+        public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+            event.registerEntityRenderer(UtilsBahCraft.HAMMER_BOSS.get(), HammerBossRender::new);
         }
     }
 }

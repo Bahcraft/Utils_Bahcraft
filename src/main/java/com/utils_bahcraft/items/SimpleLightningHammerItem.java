@@ -17,7 +17,7 @@ public class SimpleLightningHammerItem extends LightningHammerBase {
     }
 
     @Override
-    protected @NotNull String getModeTag() {
+    public @NotNull String getModeTag() {
         return TAG_MODE;
     }
 
