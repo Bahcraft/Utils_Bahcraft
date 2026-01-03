@@ -1,6 +1,7 @@
 package com.utils_bahcraft;
 
 import com.mojang.logging.LogUtils;
+import net.minecraftforge.common.ForgeSpawnEggItem;
 import com.utils_bahcraft.client.render.HammerBossRender;
 import com.utils_bahcraft.entities.HammerBossEntity;
 import com.utils_bahcraft.items.LightningHammerItem; // Make sure this import matches your class name
@@ -66,8 +67,14 @@ public class UtilsBahCraft
     public static final RegistryObject<EntityType<HammerBossEntity>> HAMMER_BOSS =
             ENTITY_TYPES.register("boss",
                     () -> EntityType.Builder.of(HammerBossEntity::new, MobCategory.MONSTER)
-                            .sized(1.0f, 2.0f) // Hitbox size (width, height)
+                            .sized(5f, 13.0f)
+                            .fireImmune()
                             .build(new ResourceLocation(MODID, "boss").toString()));
+
+    // SPAWN EGG REGISTRATION
+    public static final RegistryObject<Item> HAMMER_BOSS_SPAWN_EGG = ITEMS.register("hammer_boss_spawn_egg",
+            () -> new ForgeSpawnEggItem(HAMMER_BOSS, 0x222222, 0x00D9FF,
+                    new Item.Properties()));
 
     // 3. Register the Custom Tab
     public static final RegistryObject<CreativeModeTab> BAHCRAFT_TAB = CREATIVE_MODE_TABS.register("bahcraft_tab",
@@ -78,6 +85,7 @@ public class UtilsBahCraft
                         output.accept(LIGHTNING_HAMMER.get());
                         output.accept(SIMPLE_LIGHTNING_HAMMER.get());
                         output.accept(BALANCED_HAMMER.get());
+                        output.accept(HAMMER_BOSS_SPAWN_EGG.get());
                     })
                     .build());
 
