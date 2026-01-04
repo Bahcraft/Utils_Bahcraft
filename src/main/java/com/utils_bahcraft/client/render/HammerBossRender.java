@@ -33,5 +33,8 @@ public class HammerBossRender extends GeoEntityRenderer<HammerBossEntity> {
         poseStack.popPose();
     }
 
-
+    @Override
+    protected float getDeathMaxRotation(HammerBossEntity entityLivingBaseIn) {
+        return 0.0F;
+    }
 }

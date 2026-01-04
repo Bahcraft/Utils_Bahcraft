@@ -8,7 +8,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
 public interface WorldActions {
-    void spawnLightningAt(@NotNull Level level, @NotNull Vec3 position, boolean playThunder);
+    void spawnLightningAt(@NotNull Level level, @NotNull Vec3 position, boolean onlyEffect);
     void spawnThunderAt(@NotNull Level level, @NotNull Vec3 position, float volume, float pitch);
     void strikeBlockWithLightning(@NotNull Level level, @NotNull BlockPos pos, boolean dropItems);
     void forceKill(@NotNull LivingEntity target, @NotNull Level level, @NotNull DamageSource source);

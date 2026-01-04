@@ -21,16 +21,14 @@ import org.jetbrains.annotations.NotNull;
 
 public class DefaultWorldActions implements WorldActions {
     @Override
-    public void spawnLightningAt(@NotNull Level level, @NotNull Vec3 position, boolean playThunder) {
+    public void spawnLightningAt(@NotNull Level level, @NotNull Vec3 position, boolean onlyEffect) {
         if (level.isClientSide) return;
         LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
         if (bolt != null) {
             bolt.moveTo(position);
             level.addFreshEntity(bolt);
         }
-        if (playThunder) {
-            level.playSound(null, position.x, position.y, position.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 1.0f, 1.0f);
-        }
+        bolt.setVisualOnly(onlyEffect);
     }
 
     @Override

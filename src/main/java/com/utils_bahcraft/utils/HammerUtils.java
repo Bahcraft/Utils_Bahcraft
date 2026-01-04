@@ -224,8 +224,8 @@ public class HammerUtils {
     /**
      * Spawns a lightning bolt and optionally plays thunder at the given position (server-side only).
      */
-    public static void spawnLightningAt(@NotNull Level level, @NotNull Vec3 position, boolean playThunder) {
-        worldActions.spawnLightningAt(level, position, playThunder);
+    public static void spawnLightningAt(@NotNull Level level, @NotNull Vec3 position, boolean onlyEffect) {
+        worldActions.spawnLightningAt(level, position, onlyEffect);
     }
 
     /**
