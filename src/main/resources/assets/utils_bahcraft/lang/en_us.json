@@ -5,5 +5,7 @@
   "creativetab.utils_bahcraft": "BahCraft Utilities",
 
   "entity.utils_bahcraft.boss": "Lightning Hammer Boss",
-  "item.utils_bahcraft.hammer_boss_spawn_egg": "Spawn Lightning Boss"
+  "item.utils_bahcraft.hammer_boss_spawn_egg": "Spawn Lightning Boss",
+
+  "item.utils_bahcraft.wind_wand": "Vara de Vento"
 }
