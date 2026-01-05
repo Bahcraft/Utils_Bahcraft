@@ -1,0 +1,10 @@
+{
+  "parent": "utils_bahcraft:item/lightning_hammer",
+  "overrides": [
+    {
+      "predicate": { "utils_bahcraft:mode_active": 1.0 },
+      "model": "utils_bahcraft:item/lightning_hammer_on"
+    }
+  ]
+}
+

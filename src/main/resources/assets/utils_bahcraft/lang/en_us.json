@@ -1,4 +1,9 @@
 {
   "item.utils_bahcraft.lightning_hammer": "Martelão",
-  "creativetab.utils_bahcraft": "BahCraft Utilities"
+  "item.utils_bahcraft.simple_lightning_hammer": "Martelão da Destruicão",
+  "item.utils_bahcraft.balanced_hammer": "Balanced Hammer",
+  "creativetab.utils_bahcraft": "BahCraft Utilities",
+
+  "entity.utils_bahcraft.boss": "Lightning Hammer Boss",
+  "item.utils_bahcraft.hammer_boss_spawn_egg": "Spawn Lightning Boss"
 }

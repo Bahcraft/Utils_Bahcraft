@@ -85,6 +85,19 @@ done
 APP_BASE_NAME=${0##*/}
 APP_HOME=$( cd "${APP_HOME:-./}" && pwd -P ) || exit
 
+# If JAVA_HOME isn't set, try to read org.gradle.java.home from the project's gradle.properties
+# This helps the wrapper launch using a compatible JDK (e.g. Java 17) when the system default is newer.
+if [ -z "$JAVA_HOME" ] ; then
+    PROJ_GRADLE_PROPS="$APP_HOME/gradle.properties"
+    if [ -f "$PROJ_GRADLE_PROPS" ] ; then
+        # extract value for org.gradle.java.home (handles quoted or unquoted values)
+        JAVA_HOME_FROM_PROPS=$(sed -n 's/^[[:space:]]*org.gradle.java.home[[:space:]]*=\(.*\)/\1/p' "$PROJ_GRADLE_PROPS" | sed 's/^[ \t]*//;s/[ \t]*$//;s/^"//;s/"$//')
+        if [ -n "$JAVA_HOME_FROM_PROPS" ] && [ -x "$JAVA_HOME_FROM_PROPS/bin/java" ] ; then
+            export JAVA_HOME="$JAVA_HOME_FROM_PROPS"
+        fi
+    fi
+fi
+
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD=maximum
 
