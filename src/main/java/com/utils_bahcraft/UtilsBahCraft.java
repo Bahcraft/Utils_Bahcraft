@@ -1,11 +1,13 @@
 package com.utils_bahcraft;
 
 import com.mojang.logging.LogUtils;
+import com.utils_bahcraft.items.hammer.BalancedHammerItem;
+import com.utils_bahcraft.items.wind_wand.WindWand;
 import net.minecraftforge.common.ForgeSpawnEggItem;
 import com.utils_bahcraft.client.render.HammerBossRender;
 import com.utils_bahcraft.entities.HammerBossEntity;
-import com.utils_bahcraft.items.LightningHammerItem; // Make sure this import matches your class name
-import com.utils_bahcraft.items.SimpleLightningHammerItem;
+import com.utils_bahcraft.items.hammer.LightningHammerItem; // Make sure this import matches your class name
+import com.utils_bahcraft.items.hammer.SimpleLightningHammerItem;
 import com.utils_bahcraft.utils.HammerUtils;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.core.registries.Registries;
@@ -46,6 +48,12 @@ public class UtilsBahCraft
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
+    // Registe Wind Wand
+    public static final RegistryObject<Item> WIND_WAND = ITEMS.register("wind_wand",
+            () -> new WindWand(new Item.Properties()
+                    .stacksTo(1)
+                    .fireResistant()));
+
     // Registering the Lightning Hammer
     public static final RegistryObject<Item> LIGHTNING_HAMMER = ITEMS.register("lightning_hammer",
             () -> new LightningHammerItem(new Item.Properties()
@@ -60,7 +68,7 @@ public class UtilsBahCraft
 
     // Registering the Balanced Hammer
     public static final RegistryObject<Item> BALANCED_HAMMER = ITEMS.register("balanced_hammer",
-            () -> new com.utils_bahcraft.items.BalancedHammerItem(new Item.Properties()
+            () -> new BalancedHammerItem(new Item.Properties()
                     .stacksTo(1)
                     .fireResistant()));
 
@@ -85,6 +93,7 @@ public class UtilsBahCraft
                         output.accept(LIGHTNING_HAMMER.get());
                         output.accept(SIMPLE_LIGHTNING_HAMMER.get());
                         output.accept(BALANCED_HAMMER.get());
+                        output.accept(WIND_WAND.get());
                         output.accept(HAMMER_BOSS_SPAWN_EGG.get());
                     })
                     .build());

@@ -1,0 +1,6 @@
+{
+  "parent": "item/handheld",
+  "textures": {
+    "layer0": "utils_bahcraft:item/wind_wand/wind_wand"
+  }
+}

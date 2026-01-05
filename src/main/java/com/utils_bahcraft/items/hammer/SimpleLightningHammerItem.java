@@ -1,4 +1,4 @@
-package com.utils_bahcraft.items;
+package com.utils_bahcraft.items.hammer;
 
 import com.utils_bahcraft.interfaces.LightningHammerBase;
 import com.utils_bahcraft.utils.HammerUtils;

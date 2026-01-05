@@ -1,13 +1,10 @@
-package com.utils_bahcraft.items;
+package com.utils_bahcraft.items.hammer;
 
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.utils_bahcraft.interfaces.LightningHammerBase;
 import com.utils_bahcraft.utils.HammerUtils;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;

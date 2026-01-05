@@ -1,8 +1,7 @@
-package com.utils_bahcraft.items;
+package com.utils_bahcraft.items.hammer;
 
 import com.utils_bahcraft.utils.HammerUtils;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
 import org.jetbrains.annotations.NotNull;
