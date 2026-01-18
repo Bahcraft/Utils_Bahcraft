@@ -10,6 +10,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
+import java.lang.management.ManagementFactory;
+
 public class CommonUtils {
     public static void spawnSafeLoot(Level level, ItemStack stack, double x, double y, double z) {
         // Spawn the Item Entity
@@ -48,4 +50,12 @@ public class CommonUtils {
         HammerUtils.spawnLightningAt(level, center.getCenter(), true);
     }
 
+    public static boolean isDebugging() {
+        for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
+            if (arg.contains("jdwp")) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

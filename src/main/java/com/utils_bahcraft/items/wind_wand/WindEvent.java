@@ -1,15 +1,20 @@
 package com.utils_bahcraft.items.wind_wand;
 
+import com.utils_bahcraft.network.ModNet;
+import com.utils_bahcraft.network.packets.WindImpulseS2CPacket;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.projectile.FireworkRocketEntity;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+
+import java.lang.management.ManagementFactory;
 
 @Mod.EventBusSubscriber(modid = "utils_bahcraft", bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class WindEvent {
@@ -20,29 +25,64 @@ public class WindEvent {
         if (entity.level().isClientSide) return;
 
         CompoundTag nbt = entity.getPersistentData();
-        if (nbt.contains("WindWandTimer")) {
-            var position = entity.position();
-            int timer = nbt.getInt("WindWandTimer");
+        if (!nbt.contains("WindWandTimer")) return;
 
-            // --- PHASE 1: SLOW RISE (0 to 40 ticks / 2 seconds) ---
-            if (timer < 15) {
-                entity.setNoGravity(true);
-                entity.setOnGround(false);
-                entity.setDeltaMovement(0, 0.2, 0);
+        var position = entity.position();
+        int timer = nbt.getInt("WindWandTimer");
 
-                nbt.putInt("WindWandTimer", timer + 1);
+        // PHASE 1: CHARGING (0 to 14 ticks)
+        if (timer < 15) {
+            entity.setNoGravity(true);
+            entity.setOnGround(false);
+            entity.setDeltaMovement(0, 0.2, 0);
+
+            nbt.putInt("WindWandTimer", timer + 1);
+            return;
+        }
+
+        // PHASE 2: LAUNCH
+        if (timer < 300) {
+            entity.setNoGravity(false);
+            entity.setOnGround(false);
+
+            Vec3 addVel = new Vec3(0, 10, 0);
+
+            // Server applies motion
+            entity.setDeltaMovement(addVel);
+            entity.hasImpulse = true;
+            entity.hurtMarked = true;
+
+            // If it's a player, also apply the same impulse on the physical client
+            if (entity instanceof net.minecraft.server.level.ServerPlayer sp) {
+                ModNet.CHANNEL.send(
+                        net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> sp),
+                        new WindImpulseS2CPacket(addVel.x, addVel.y, addVel.z)
+                );
             }
 
-            // --- PHASE 2: THE LAUNCH  ---
-            else {
-                entity.setNoGravity(false);
-                entity.setOnGround(false);
+            boolean isDebugMode = ManagementFactory.getRuntimeMXBean().getInputArguments()
+                    .toString().contains("jdwp");
 
-                entity.setDeltaMovement(0.0, 15, 0.0);
-                entity.hasImpulse = true;
-                entity.hurtMarked = true;
+            if (isDebugMode) {
+                Vec3 vel = entity.getDeltaMovement();
+                double speed = vel.length();
 
-                entity.level().playSound(null, position.x, position.y, position.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.NEUTRAL, 100f, 0.5f);
+                if (entity.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+                    serverLevel.getServer().getPlayerList().broadcastSystemMessage(
+                            Component.literal(
+                                    "§e[DEBUG] §fEntity: " + entity.getName().getString() +
+                                            " | §bXYZ: " + String.format("%.2f, %.2f, %.2f", vel.x, vel.y, vel.z) +
+                                            " | §cTotal Speed: " + String.format("%.4f", speed)
+                            ),
+                            false
+                    );
+                }
+            }
+
+            // Sound/Particles only on first launch tick
+            if (timer == 15) {
+                entity.level().playSound(null, position.x, position.y, position.z,
+                        SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.NEUTRAL, 100f, 0.5f);
 
                 if (entity.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
                     serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.EXPLOSION,
@@ -57,9 +97,13 @@ public class WindEvent {
                                 1, 0.0, 0.1, 0.0, 0.1);
                     }
                 }
-
-                nbt.remove("WindWandTimer");
             }
+
+            nbt.putInt("WindWandTimer", timer + 1);
+            return;
         }
+
+        // PHASE 3: CLEANUP
+        nbt.remove("WindWandTimer");
     }
 }

@@ -1,13 +1,13 @@
 package com.utils_bahcraft;
 
 import com.mojang.logging.LogUtils;
-import com.utils_bahcraft.items.hammer.BalancedHammerItem;
-import com.utils_bahcraft.items.wind_wand.WindWand;
-import net.minecraftforge.common.ForgeSpawnEggItem;
 import com.utils_bahcraft.client.render.HammerBossRender;
 import com.utils_bahcraft.entities.HammerBossEntity;
-import com.utils_bahcraft.items.hammer.LightningHammerItem; // Make sure this import matches your class name
+import com.utils_bahcraft.items.hammer.BalancedHammerItem;
+import com.utils_bahcraft.items.hammer.LightningHammerItem;
 import com.utils_bahcraft.items.hammer.SimpleLightningHammerItem;
+import com.utils_bahcraft.items.wind_wand.WindWand;
+import com.utils_bahcraft.network.ModNet; // <-- ADD
 import com.utils_bahcraft.utils.HammerUtils;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.core.registries.Registries;
@@ -20,6 +20,7 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.common.ForgeSpawnEggItem;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -28,6 +29,7 @@ import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent; // <-- ADD
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -36,37 +38,31 @@ import org.slf4j.Logger;
 import software.bernie.geckolib.GeckoLib;
 
 @Mod(UtilsBahCraft.MODID)
-public class UtilsBahCraft
-{
+public class UtilsBahCraft {
     public static final String MODID = "utils_bahcraft";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    // Item Registry
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     public static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
             DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
-    // Registe Wind Wand
     public static final RegistryObject<Item> WIND_WAND = ITEMS.register("wind_wand",
             () -> new WindWand(new Item.Properties()
                     .stacksTo(1)
                     .fireResistant()));
 
-    // Registering the Lightning Hammer
     public static final RegistryObject<Item> LIGHTNING_HAMMER = ITEMS.register("lightning_hammer",
             () -> new LightningHammerItem(new Item.Properties()
                     .stacksTo(1)
                     .fireResistant()));
 
-    // Registering the Simple Lightning Hammer
     public static final RegistryObject<Item> SIMPLE_LIGHTNING_HAMMER = ITEMS.register("simple_lightning_hammer",
             () -> new SimpleLightningHammerItem(new Item.Properties()
                     .stacksTo(1)
                     .fireResistant()));
 
-    // Registering the Balanced Hammer
     public static final RegistryObject<Item> BALANCED_HAMMER = ITEMS.register("balanced_hammer",
             () -> new BalancedHammerItem(new Item.Properties()
                     .stacksTo(1)
@@ -79,12 +75,10 @@ public class UtilsBahCraft
                             .fireImmune()
                             .build(new ResourceLocation(MODID, "boss").toString()));
 
-    // SPAWN EGG REGISTRATION
     public static final RegistryObject<Item> HAMMER_BOSS_SPAWN_EGG = ITEMS.register("hammer_boss_spawn_egg",
             () -> new ForgeSpawnEggItem(HAMMER_BOSS, 0x222222, 0x00D9FF,
                     new Item.Properties()));
 
-    // 3. Register the Custom Tab
     public static final RegistryObject<CreativeModeTab> BAHCRAFT_TAB = CREATIVE_MODE_TABS.register("bahcraft_tab",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("creativetab.utils_bahcraft"))
@@ -98,66 +92,58 @@ public class UtilsBahCraft
                     })
                     .build());
 
-    public UtilsBahCraft()
-    {
+    public UtilsBahCraft() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        // Register Items
         ITEMS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
         ENTITY_TYPES.register(modEventBus);
 
-        // Register Creative Tab listener
         modEventBus.addListener(this::addCreative);
+
+        modEventBus.addListener(this::commonSetup);
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC);
 
         GeckoLib.initialize();
 
-        // Register global event bus
         MinecraftForge.EVENT_BUS.register(this);
     }
 
-    // Add item to the Creative Tab
-    private void addCreative(BuildCreativeModeTabContentsEvent event)
-    {
+    private void commonSetup(final FMLCommonSetupEvent event) {
+        event.enqueueWork(ModNet::register);
+    }
+
+    private void addCreative(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
 //            event.accept(LIGHTNING_HAMMER);
         }
     }
 
-    // Client-Side Event Bus
     @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-    public static class ClientModEvents
-    {
+    public static class ClientModEvents {
         @SubscribeEvent
-        public static void onClientSetup(FMLClientSetupEvent event)
-        {
+        public static void onClientSetup(FMLClientSetupEvent event) {
             event.enqueueWork(() -> {
 
-                // Register item property for model overrides
                 ItemProperties.register(
                         LIGHTNING_HAMMER.get(),
                         new ResourceLocation(MODID, "mode_active"),
                         (stack, level, entity, seed) -> {
                             boolean isActive = stack.hasTag() && stack.getTag().getBoolean("LightningMode");
-                            float value = isActive ? 1.0F : 0.0F;
-                            return value;
+                            return isActive ? 1.0F : 0.0F;
                         }
                 );
 
-                // Register property for the simple hammer as well so it can share the same model behavior
                 ItemProperties.register(
                         SIMPLE_LIGHTNING_HAMMER.get(),
                         new ResourceLocation(MODID, "mode_active"),
                         (stack, level, entity, seed) -> {
                             boolean isActive = stack.hasTag() && stack.getTag().getBoolean("SIMPLE_HAMMER_MODE");
-                            float value = isActive ? 1.0F : 0.0F;
-                            return value;
+                            return isActive ? 1.0F : 0.0F;
                         }
                 );
 
-                // Balanced hammer property registration
                 ItemProperties.register(
                         BALANCED_HAMMER.get(),
                         new ResourceLocation(MODID, "mode_active"),
@@ -168,6 +154,7 @@ public class UtilsBahCraft
                 );
             });
         }
+
         @SubscribeEvent
         public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerEntityRenderer(UtilsBahCraft.HAMMER_BOSS.get(), HammerBossRender::new);
