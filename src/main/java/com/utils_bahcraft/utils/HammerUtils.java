@@ -87,7 +87,7 @@ public class HammerUtils {
 
             int ticksUsed = 72000 - timer;
             if (ticksUsed % 20 == 0) {
-                spawnThunderAt(level, Vec3.atCenterOf(player.blockPosition()), 1.0f, 1.0f);
+//                spawnThunderAt(level, Vec3.atCenterOf(player.blockPosition()), 1.0f, 1.0f);
             }
         }
 

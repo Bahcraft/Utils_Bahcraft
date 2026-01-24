@@ -32,6 +32,10 @@ public class LightningHammerItem extends LightningHammerBase {
         super(properties);
     }
 
+    protected boolean shouldSpawnLightning(){
+        return true;
+    }
+
     @Override
     public @NotNull String getModeTag() {
         return HammerUtils.TAG_MODE;
@@ -91,13 +95,15 @@ public class LightningHammerItem extends LightningHammerBase {
             return InteractionResult.SUCCESS;
         }
 
-        Vec3 positionClicked = Vec3.atBottomCenterOf(context.getClickedPos().above());
+        if (shouldSpawnLightning()) {
+            Vec3 positionClicked = Vec3.atBottomCenterOf(context.getClickedPos().above());
 
-        if (player != null) {
-            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 5, 5, false, false));
+            if (player != null) {
+                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 5, 5, false, false));
+            }
+
+            HammerUtils.spawnLightningAt(level, positionClicked);
         }
-
-        HammerUtils.spawnLightningAt(level, positionClicked);
 
         return InteractionResult.SUCCESS;
     }

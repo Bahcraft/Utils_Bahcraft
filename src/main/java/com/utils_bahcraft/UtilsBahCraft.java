@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.utils_bahcraft.client.render.HammerBossRender;
 import com.utils_bahcraft.entities.HammerBossEntity;
 import com.utils_bahcraft.items.hammer.BalancedHammerItem;
+import com.utils_bahcraft.items.hammer.FlyingHammerItem;
 import com.utils_bahcraft.items.hammer.LightningHammerItem;
 import com.utils_bahcraft.items.hammer.SimpleLightningHammerItem;
 import com.utils_bahcraft.items.wind_wand.WindWand;
@@ -68,6 +69,11 @@ public class UtilsBahCraft {
                     .stacksTo(1)
                     .fireResistant()));
 
+    public static final RegistryObject<Item> FLYING_HAMMER = ITEMS.register("flying_hammer",
+            () -> new FlyingHammerItem(new Item.Properties()
+                    .stacksTo(1)
+                    .fireResistant()));
+
     public static final RegistryObject<EntityType<HammerBossEntity>> HAMMER_BOSS =
             ENTITY_TYPES.register("boss",
                     () -> EntityType.Builder.of(HammerBossEntity::new, MobCategory.MONSTER)
@@ -87,6 +93,7 @@ public class UtilsBahCraft {
                         output.accept(LIGHTNING_HAMMER.get());
                         output.accept(SIMPLE_LIGHTNING_HAMMER.get());
                         output.accept(BALANCED_HAMMER.get());
+                        output.accept(FLYING_HAMMER.get());
                         output.accept(WIND_WAND.get());
                         output.accept(HAMMER_BOSS_SPAWN_EGG.get());
                     })
@@ -149,6 +156,15 @@ public class UtilsBahCraft {
                         new ResourceLocation(MODID, "mode_active"),
                         (stack, level, entity, seed) -> {
                             boolean isActive = stack.hasTag() && stack.getTag().getBoolean(HammerUtils.BALANCED_TAG_MODE);
+                            return isActive ? 1.0F : 0.0F;
+                        }
+                );
+
+                ItemProperties.register(
+                        FLYING_HAMMER.get(),
+                        new ResourceLocation(MODID, "mode_active"),
+                        (stack, level, entity, seed) -> {
+                            boolean isActive = stack.hasTag() && stack.getTag().getBoolean(FlyingHammerItem.FLYING_TAG_MODE);
                             return isActive ? 1.0F : 0.0F;
                         }
                 );

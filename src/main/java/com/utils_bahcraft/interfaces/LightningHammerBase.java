@@ -35,6 +35,10 @@ public abstract class LightningHammerBase extends Item {
 
     protected abstract @NotNull String getHammerName();
 
+    protected boolean shouldSpawnLightning() {
+        return true;
+    }
+
     /**
      * If true, the item will call startUsingItem when mode is active and the player uses the item.
      */
@@ -56,7 +60,9 @@ public abstract class LightningHammerBase extends Item {
 
         if (HammerUtils.isModeActive(stack, getModeTag()) && shouldStartUsingWhenModeActive()) {
             player.startUsingItem(hand);
-            HammerUtils.spawnLightningAt(level, player.position());
+            if (shouldSpawnLightning()) {
+                HammerUtils.spawnLightningAt(level, player.position());
+            }
             player.clearFire();
             return InteractionResultHolder.consume(stack);
         }
